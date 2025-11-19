@@ -1,0 +1,1185 @@
+# 📚 Documentación API Backend - Sistema de Gestión de Créditos
+
+**Base URL:** `http://18.116.21.77:8000`
+
+---
+
+## 🔐 Autenticación
+
+La mayoría de los endpoints requieren autenticación mediante **Token**. Debe incluir el header:
+```
+Authorization: Token <tu_token>
+```
+
+---
+
+## 📋 Índice de Módulos
+
+1. [Empresa](#empresa)
+2. [Usuarios](#usuarios)
+3. [Clientes](#clientes)
+4. [Créditos](#creditos)
+
+---
+
+# 🏢 EMPRESA
+
+## 1. Registro de Empresa y Usuario
+
+**POST** `http://18.116.21.77:8000/api/empresa/register/empresa-user/`
+
+**Descripción:** Registra una nueva empresa junto con su usuario administrador. Crea automáticamente el perfil y retorna un token de autenticación.
+
+**Autenticación:** No requerida (público)
+
+**Content-Type:** `multipart/form-data`
+
+**Parámetros (form-data):**
+
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| razon_social | string | Sí | Razón social de la empresa |
+| email_contacto | string | Sí | Email de contacto de la empresa |
+| nombre_comercial | string | Sí | Nombre comercial de la empresa |
+| imagen_empresa | file | No | Logo de la empresa (imagen) |
+| username | string | Sí | Nombre de usuario del administrador |
+| password | string | Sí | Contraseña (mínimo 8 caracteres) |
+| first_name | string | Sí | Nombre del administrador |
+| last_name | string | Sí | Apellido del administrador |
+| email | string | Sí | Email del administrador |
+| imagen_perfil | file | No | Avatar del administrador (imagen) |
+
+**Ejemplo de petición (form-data):**
+```
+razon_social: "Financiera ABC S.A."
+email_contacto: "contacto@financieraabc.com"
+nombre_comercial: "ABC Financiera"
+username: "admin_abc"
+password: "12345678"
+first_name: "Juan"
+last_name: "Pérez"
+email: "juan.perez@financieraabc.com"
+imagen_empresa: [archivo de imagen]
+imagen_perfil: [archivo de imagen]
+```
+
+**Respuesta exitosa (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Registro exitoso",
+  "empresa": {
+    "id": 1,
+    "razon_social": "Financiera ABC S.A.",
+    "email_contacto": "contacto@financieraabc.com",
+    "nombre_comercial": "ABC Financiera",
+    "fecha_registro": "2025-11-19T10:30:00Z",
+    "activo": true,
+    "imagen_url": "https://bucket.s3.amazonaws.com/empresas/logo_123.jpg"
+  },
+  "user": {
+    "id": 1,
+    "username": "admin_abc",
+    "first_name": "Juan",
+    "last_name": "Pérez",
+    "email": "juan.perez@financieraabc.com",
+    "date_joined": "2025-11-19T10:30:00Z",
+    "is_superuser": true,
+    "is_staff": true,
+    "empresa_id": 1,
+    "empresa_nombre": "Financiera ABC S.A."
+  },
+  "perfil_user": {
+    "id": 1,
+    "empresa_id": 1,
+    "usuario_id": 1,
+    "imagen_url": "https://bucket.s3.amazonaws.com/usuarios/avatar_123.jpg"
+  },
+  "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
+}
+```
+
+---
+
+## 2. Login
+
+**POST** `http://18.116.21.77:8000/api/auth/login/`
+
+**Descripción:** Autenticación de usuario. Devuelve token de acceso.
+
+**Autenticación:** No requerida
+
+**Content-Type:** `application/json`
+
+**Body:**
+```json
+{
+  "email": "juan.perez@financieraabc.com",
+  "password": "12345678"
+}
+```
+
+**Respuesta exitosa (200 OK):**
+```json
+{
+  "message": "Login exitoso",
+  "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b",
+  "user": {
+    "id": 1,
+    "username": "admin_abc",
+    "email": "juan.perez@financieraabc.com",
+    "nombre_completo": "Juan Pérez",
+    "is_superuser": true,
+    "is_staff": true,
+    "empresa_id": 1,
+    "empresa_nombre": "Financiera ABC S.A."
+  }
+}
+```
+
+---
+
+## 3. Logout
+
+**POST** `http://18.116.21.77:8000/api/auth/logout/`
+
+**Descripción:** Cierra sesión eliminando el token de acceso.
+
+**Autenticación:** Requerida
+
+**Content-Type:** `application/json`
+
+**Body:**
+```json
+{
+  "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
+}
+```
+
+**Respuesta exitosa (200 OK):**
+```json
+{
+  "message": "Logout exitoso"
+}
+```
+
+---
+
+## 4. Empresas CRUD
+
+### Listar Empresas
+**GET** `http://18.116.21.77:8000/api/empresa/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Lista todas las empresas.
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "razon_social": "Financiera ABC S.A.",
+    "nombre_comercial": "ABC Financiera",
+    "email_contacto": "contacto@financieraabc.com",
+    "telefono": "+591 123456789",
+    "direccion": "Av. Principal 123",
+    "Imagen_url": "https://bucket.s3.amazonaws.com/empresas/logo_123.jpg",
+    "activo": true,
+    "fecha_registro": "2025-11-19T10:30:00Z"
+  }
+]
+```
+
+### Obtener Empresa por ID
+**GET** `http://18.116.21.77:8000/api/empresa/{id}/`
+
+**Autenticación:** Requerida
+
+**Respuesta (200 OK):** Igual al objeto individual de la lista.
+
+### Crear Empresa
+**POST** `http://18.116.21.77:8000/api/empresa/`
+
+**Autenticación:** Requerida
+
+**Body:**
+```json
+{
+  "razon_social": "Nueva Financiera S.A.",
+  "nombre_comercial": "Nueva Financiera",
+  "email_contacto": "info@nuevafinanciera.com",
+  "telefono": "+591 987654321",
+  "direccion": "Calle Secundaria 456"
+}
+```
+
+### Actualizar Empresa
+**PUT/PATCH** `http://18.116.21.77:8000/api/empresa/{id}/`
+
+**Autenticación:** Requerida
+
+**Content-Type:** `multipart/form-data` (si incluye imagen)
+
+**Parámetros:**
+- Campos a actualizar + `imagen_empresa` (archivo opcional)
+
+### Eliminar Empresa
+**DELETE** `http://18.116.21.77:8000/api/empresa/{id}/`
+
+**Autenticación:** Requerida
+
+---
+
+## 5. Suscripciones CRUD
+
+### Listar Suscripciones
+**GET** `http://18.116.21.77:8000/api/suscripcion/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Lista las suscripciones de la empresa del usuario autenticado.
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "empresa": 1,
+    "empresa_info": {
+      "id": 1,
+      "razon_social": "Financiera ABC S.A.",
+      "nombre_comercial": "ABC Financiera"
+    },
+    "plan": "Premium",
+    "fecha_inicio": "2025-11-19T10:30:00Z",
+    "fecha_fin": "2025-12-19T10:30:00Z",
+    "activo": true,
+    "monto": 500.00
+  }
+]
+```
+
+### Crear Suscripción
+**POST** `http://18.116.21.77:8000/api/suscripcion/`
+
+**Autenticación:** Requerida
+
+**Body:**
+```json
+{
+  "plan": "Premium",
+  "monto": 500.00
+}
+```
+
+**Nota:** La empresa se asigna automáticamente desde el usuario autenticado. La `fecha_fin` se calcula como `fecha_inicio + 30 días`.
+
+### Actualizar/Eliminar Suscripción
+**PUT/PATCH/DELETE** `http://18.116.21.77:8000/api/suscripcion/{id}/`
+
+---
+
+## 6. Configuración CRUD
+
+### Listar Configuraciones
+**GET** `http://18.116.21.77:8000/api/configuracion/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Lista las configuraciones de la empresa del usuario.
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "empresa": 1,
+    "clave": "tasa_interes_default",
+    "valor": "12.5",
+    "descripcion": "Tasa de interés por defecto"
+  }
+]
+```
+
+### Crear Configuración
+**POST** `http://18.116.21.77:8000/api/configuracion/`
+
+**Body:**
+```json
+{
+  "clave": "tasa_interes_default",
+  "valor": "12.5",
+  "descripcion": "Tasa de interés por defecto"
+}
+```
+
+---
+
+## 7. On-Premise CRUD
+
+**GET/POST/PUT/PATCH/DELETE** `http://18.116.21.77:8000/api/on-premise/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Gestión de configuraciones on-premise de la empresa.
+
+---
+
+# 👥 USUARIOS
+
+## 1. Usuarios CRUD
+
+### Listar Usuarios
+**GET** `http://18.116.21.77:8000/api/User/user/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Lista usuarios de la misma empresa (multitenancy).
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "username": "admin_abc",
+    "email": "juan.perez@financieraabc.com",
+    "first_name": "Juan",
+    "last_name": "Pérez",
+    "is_staff": true,
+    "is_superuser": true,
+    "is_active": true,
+    "date_joined": "2025-11-19T10:30:00Z"
+  }
+]
+```
+
+### Obtener Usuario por ID
+**GET** `http://18.116.21.77:8000/api/User/user/{id}/`
+
+### Crear Usuario
+**POST** `http://18.116.21.77:8000/api/User/user/`
+
+**Body:**
+```json
+{
+  "username": "usuario_nuevo",
+  "password": "contraseña123",
+  "email": "nuevo@empresa.com",
+  "first_name": "Nombre",
+  "last_name": "Apellido"
+}
+```
+
+**Nota:** La empresa se asigna automáticamente.
+
+### Actualizar Usuario
+**PUT/PATCH** `http://18.116.21.77:8000/api/User/user/{id}/`
+
+### Eliminar Usuario
+**DELETE** `http://18.116.21.77:8000/api/User/user/{id}/`
+
+---
+
+## 2. Crear Usuario Normal (por Admin)
+
+**POST** `http://18.116.21.77:8000/api/User/create-user/`
+
+**Autenticación:** Requerida (solo staff)
+
+**Descripción:** Un administrador crea usuarios normales para su empresa.
+
+**Body:**
+```json
+{
+  "username": "empleado01",
+  "password": "pass1234",
+  "email": "empleado@empresa.com",
+  "first_name": "Carlos",
+  "last_name": "López",
+  "imagen_url": "https://ejemplo.com/avatar.jpg"
+}
+```
+
+**Respuesta (201 Created):**
+```json
+{
+  "message": "Usuario creado exitosamente",
+  "user": {
+    "id": 2,
+    "username": "empleado01",
+    "email": "empleado@empresa.com",
+    "first_name": "Carlos",
+    "last_name": "López",
+    "is_staff": false,
+    "is_superuser": false,
+    "empresa_id": 1,
+    "empresa_nombre": "Financiera ABC S.A."
+  },
+  "token": "abc123def456..."
+}
+```
+
+---
+
+## 3. Grupos (Roles) CRUD
+
+### Listar Grupos
+**GET** `http://18.116.21.77:8000/api/User/group/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Lista grupos/roles de la empresa.
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "nombre": "Administradores",
+    "permisos": [1, 2, 3],
+    "descripcion": "Grupo con permisos completos"
+  }
+]
+```
+
+### Crear Grupo
+**POST** `http://18.116.21.77:8000/api/User/group/`
+
+**Body:**
+```json
+{
+  "nombre": "Analistas",
+  "descripcion": "Grupo de analistas de crédito",
+  "permisos": [4, 5, 6]
+}
+```
+
+### Actualizar/Eliminar Grupo
+**PUT/PATCH/DELETE** `http://18.116.21.77:8000/api/User/group/{id}/`
+
+---
+
+## 4. Permisos (Read-Only)
+
+**GET** `http://18.116.21.77:8000/api/User/permission/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Lista todos los permisos disponibles.
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "Can add user",
+    "codename": "add_user",
+    "content_type": 4
+  }
+]
+```
+
+---
+
+## 5. Content Types (Read-Only)
+
+**GET** `http://18.116.21.77:8000/api/User/content-type/`
+
+**Autenticación:** Requerida
+
+---
+
+## 6. Admin Log (Read-Only)
+
+**GET** `http://18.116.21.77:8000/api/User/admin-log/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Histórico de acciones en el admin de Django.
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "action_time": "2025-11-19T10:30:00Z",
+    "user": 1,
+    "content_type": 7,
+    "object_id": "1",
+    "object_repr": "Empresa: ABC",
+    "action_flag": 1,
+    "change_message": "Creada"
+  }
+]
+```
+
+---
+
+## 7. Perfil de Usuario CRUD
+
+### Listar Perfiles
+**GET** `http://18.116.21.77:8000/api/User/perfil-user/`
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "usuario": 1,
+    "empresa": 1,
+    "imagen_url": "https://bucket.s3.amazonaws.com/usuarios/avatar_123.jpg"
+  }
+]
+```
+
+### Actualizar Perfil (con imagen)
+**PUT/PATCH** `http://18.116.21.77:8000/api/User/perfil-user/{id}/`
+
+**Content-Type:** `multipart/form-data`
+
+**Parámetros:**
+- `imagen_perfil` o `imagen_url`: archivo de imagen
+
+---
+
+# 👤 CLIENTES
+
+## 1. Clientes CRUD
+
+### Listar Clientes
+**GET** `http://18.116.21.77:8000/api/Clientes/clientes/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Lista clientes de la empresa (multitenancy).
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "empresa": 1,
+    "nombre": "María",
+    "apellido": "González",
+    "fecha_nacimiento": "1990-05-15",
+    "telefono": "+591 71234567",
+    "email": "maria.gonzalez@example.com",
+    "estado_civil": "Casada",
+    "fecha_registro": "2025-11-19T10:30:00Z"
+  }
+]
+```
+
+### Obtener Cliente por ID
+**GET** `http://18.116.21.77:8000/api/Clientes/clientes/{id}/`
+
+### Crear Cliente
+**POST** `http://18.116.21.77:8000/api/Clientes/clientes/`
+
+**Body:**
+```json
+{
+  "nombre": "Pedro",
+  "apellido": "Ramírez",
+  "fecha_nacimiento": "1985-08-20",
+  "telefono": "+591 78901234",
+  "email": "pedro.ramirez@example.com",
+  "estado_civil": "Soltero"
+}
+```
+
+**Nota:** `empresa` se asigna automáticamente.
+
+### Actualizar Cliente
+**PUT/PATCH** `http://18.116.21.77:8000/api/Clientes/clientes/{id}/`
+
+### Eliminar Cliente
+**DELETE** `http://18.116.21.77:8000/api/Clientes/clientes/{id}/`
+
+---
+
+## 2. Documentación del Cliente CRUD
+
+### Listar Documentación
+**GET** `http://18.116.21.77:8000/api/Clientes/documentacion/`
+
+**Autenticación:** Requerida
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "id_cliente": 1,
+    "empresa": 1,
+    "ci": "12345678",
+    "documento_url": "https://bucket.s3.amazonaws.com/docs/ci_12345678.pdf",
+    "fecha_registro": "2025-11-19T10:30:00Z"
+  }
+]
+```
+
+### Crear Documentación
+**POST** `http://18.116.21.77:8000/api/Clientes/documentacion/`
+
+**Body:**
+```json
+{
+  "id_cliente": 1,
+  "ci": "12345678",
+  "documento_url": "https://bucket.s3.amazonaws.com/docs/ci_12345678.pdf"
+}
+```
+
+### Actualizar/Eliminar Documentación
+**PUT/PATCH/DELETE** `http://18.116.21.77:8000/api/Clientes/documentacion/{id}/`
+
+---
+
+## 3. Trabajo del Cliente CRUD
+
+### Listar Trabajos
+**GET** `http://18.116.21.77:8000/api/Clientes/trabajo/`
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "id_cliente": 1,
+    "empresa_rel": 1,
+    "cargo": "Gerente de Ventas",
+    "empresa": "Empresa XYZ S.A.",
+    "salario": 8500.00,
+    "extracto_url": "https://bucket.s3.amazonaws.com/docs/extracto_bancario.pdf",
+    "antiguedad_anos": 5
+  }
+]
+```
+
+### Crear Trabajo
+**POST** `http://18.116.21.77:8000/api/Clientes/trabajo/`
+
+**Body:**
+```json
+{
+  "id_cliente": 1,
+  "cargo": "Contador",
+  "empresa": "Contadores SA",
+  "salario": 6000.00,
+  "extracto_url": "https://bucket.s3.amazonaws.com/docs/extracto.pdf",
+  "antiguedad_anos": 3
+}
+```
+
+---
+
+## 4. Domicilio del Cliente CRUD
+
+### Listar Domicilios
+**GET** `http://18.116.21.77:8000/api/Clientes/domicilios/`
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "id_cliente": 1,
+    "empresa": 1,
+    "descripcion": "Av. Libertad #456, Zona Central",
+    "croquis_url": "https://bucket.s3.amazonaws.com/docs/croquis_dom.jpg",
+    "es_propietario": true,
+    "numero_ref": "+591 71234567"
+  }
+]
+```
+
+### Crear Domicilio
+**POST** `http://18.116.21.77:8000/api/Clientes/domicilios/`
+
+**Body:**
+```json
+{
+  "id_cliente": 1,
+  "descripcion": "Calle Secundaria #789",
+  "croquis_url": "https://bucket.s3.amazonaws.com/docs/croquis.jpg",
+  "es_propietario": false,
+  "numero_ref": "+591 78901234"
+}
+```
+
+---
+
+# 💳 CRÉDITOS
+
+## 1. Tipos de Crédito CRUD
+
+### Listar Tipos de Crédito
+**GET** `http://18.116.21.77:8000/api/Creditos/tipo-creditos/`
+
+**Autenticación:** Requerida
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "empresa": 1,
+    "nombre": "Crédito Personal",
+    "descripcion": "Préstamo para gastos personales",
+    "tasa_interes_minima": 10.0,
+    "tasa_interes_maxima": 20.0,
+    "monto_minimo": 1000.00,
+    "monto_maximo": 50000.00,
+    "plazo_minimo_meses": 6,
+    "plazo_maximo_meses": 60
+  }
+]
+```
+
+### Crear Tipo de Crédito
+**POST** `http://18.116.21.77:8000/api/Creditos/tipo-creditos/`
+
+**Body:**
+```json
+{
+  "nombre": "Crédito Automotriz",
+  "descripcion": "Préstamo para compra de vehículos",
+  "tasa_interes_minima": 12.0,
+  "tasa_interes_maxima": 18.0,
+  "monto_minimo": 5000.00,
+  "monto_maximo": 100000.00,
+  "plazo_minimo_meses": 12,
+  "plazo_maximo_meses": 72
+}
+```
+
+---
+
+## 2. Créditos CRUD y Workflow
+
+### Listar Créditos
+**GET** `http://18.116.21.77:8000/api/Creditos/creditos/`
+
+**Autenticación:** Requerida
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "empresa": 1,
+    "cliente": 1,
+    "usuario": 1,
+    "tipo_credito": 1,
+    "Monto_Solicitado": 25000.00,
+    "Numero_Cuotas": 24,
+    "Monto_Cuota": 1250.00,
+    "Tasa_Interes": 15.5,
+    "Moneda": "BOB",
+    "enum_estado": "En proceso",
+    "fase_actual": "FASE_3_LABORAL",
+    "Fecha_Aprobacion": null,
+    "Fecha_Desembolso": null,
+    "fecha_creacion": "2025-11-19T10:00:00Z",
+    "fecha_actualizacion": "2025-11-19T11:30:00Z"
+  }
+]
+```
+
+### Crear Crédito (Solicitud - FASE 1)
+**POST** `http://18.116.21.77:8000/api/Creditos/creditos/`
+
+**Body:**
+```json
+{
+  "cliente": 1,
+  "tipo_credito": 1,
+  "Monto_Solicitado": 25000.00,
+  "Numero_Cuotas": 24,
+  "Monto_Cuota": 1250.00,
+  "Tasa_Interes": 15.5,
+  "Moneda": "BOB"
+}
+```
+
+**Respuesta (201 Created):**
+```json
+{
+  "id": 1,
+  "fase_actual": "FASE_1_SOLICITUD",
+  "enum_estado": "En proceso",
+  ...
+}
+```
+
+---
+
+### Obtener Línea de Tiempo del Crédito
+**GET** `http://18.116.21.77:8000/api/Creditos/creditos/{id}/linea-tiempo/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Muestra el histórico completo de cambios de fase.
+
+**Respuesta (200 OK):**
+```json
+{
+  "credito_id": 1,
+  "total_cambios": 3,
+  "linea_tiempo": [
+    {
+      "id": 1,
+      "fase_origen": null,
+      "fase_destino": "FASE_1_SOLICITUD",
+      "fecha_cambio": "2025-11-19T10:00:00Z",
+      "usuario": "admin_abc",
+      "descripcion": "Crédito creado - Solicitud iniciada",
+      "datos_agregados": {}
+    },
+    {
+      "id": 2,
+      "fase_origen": "FASE_1_SOLICITUD",
+      "fase_destino": "FASE_2_DOCUMENTACION",
+      "fecha_cambio": "2025-11-19T10:15:00Z",
+      "usuario": "admin_abc",
+      "descripcion": "Documentación personal agregada",
+      "datos_agregados": {
+        "ci": "12345678",
+        "documento_url": "https://..."
+      }
+    }
+  ]
+}
+```
+
+---
+
+### Obtener Estado Actual del Crédito
+**GET** `http://18.116.21.77:8000/api/Creditos/creditos/{id}/estado-actual/`
+
+**Respuesta (200 OK):**
+```json
+{
+  "credito_id": 1,
+  "fase_actual": "FASE_3_LABORAL",
+  "estado": "En proceso",
+  "fecha_ultima_actualizacion": "2025-11-19T11:30:00Z",
+  "ultimo_cambio": {
+    "fase_origen": "FASE_2_DOCUMENTACION",
+    "fase_destino": "FASE_3_LABORAL",
+    "fecha": "2025-11-19T11:30:00Z",
+    "usuario": "admin_abc",
+    "descripcion": "Información laboral agregada"
+  }
+}
+```
+
+---
+
+### Agregar Documentación (FASE 1 → FASE 2)
+**PATCH** `http://18.116.21.77:8000/api/Creditos/creditos/{id}/agregar-documentacion/`
+
+**Descripción:** Agrega CI y documento del cliente. Avanza de FASE_1 a FASE_2.
+
+**Body:**
+```json
+{
+  "ci": "12345678",
+  "documento_url": "https://bucket.s3.amazonaws.com/docs/ci_12345678.pdf"
+}
+```
+
+**Respuesta (200 OK):**
+```json
+{
+  "mensaje": "Documentación agregada exitosamente",
+  "fase_nueva": "FASE_2_DOCUMENTACION",
+  "estado": {
+    "credito_id": 1,
+    "fase_actual": "FASE_2_DOCUMENTACION",
+    ...
+  }
+}
+```
+
+---
+
+### Agregar Información Laboral (FASE 2 → FASE 3)
+**PATCH** `http://18.116.21.77:8000/api/Creditos/creditos/{id}/agregar-laboral/`
+
+**Descripción:** Agrega datos laborales del cliente. Avanza de FASE_2 a FASE_3.
+
+**Body:**
+```json
+{
+  "cargo": "Gerente de Ventas",
+  "empresa": "Empresa XYZ S.A.",
+  "salario": 8500.00,
+  "extracto_url": "https://bucket.s3.amazonaws.com/docs/extracto.pdf"
+}
+```
+
+**Respuesta (200 OK):**
+```json
+{
+  "mensaje": "Información laboral agregada exitosamente",
+  "fase_nueva": "FASE_3_LABORAL",
+  "estado": { ... }
+}
+```
+
+---
+
+### Agregar Domicilio (FASE 3 → FASE 4)
+**PATCH** `http://18.116.21.77:8000/api/Creditos/creditos/{id}/agregar-domicilio/`
+
+**Descripción:** Agrega domicilio del cliente. Avanza de FASE_3 a FASE_4.
+
+**Body:**
+```json
+{
+  "descripcion": "Av. Libertad #456, Zona Central",
+  "croquis_url": "https://bucket.s3.amazonaws.com/docs/croquis.jpg",
+  "es_propietario": true,
+  "numero_ref": "+591 71234567"
+}
+```
+
+**Respuesta (200 OK):**
+```json
+{
+  "mensaje": "Domicilio agregado exitosamente",
+  "fase_nueva": "FASE_4_DOMICILIO",
+  "estado": { ... }
+}
+```
+
+---
+
+### Agregar Garante (FASE 4 → FASE 5)
+**PATCH** `http://18.116.21.77:8000/api/Creditos/creditos/{id}/agregar-garante/`
+
+**Descripción:** Agrega datos del garante. Avanza de FASE_4 a FASE_5.
+
+**Body:**
+```json
+{
+  "nombrecompleto": "Luis Fernández",
+  "ci": "87654321",
+  "telefono": "+591 79876543"
+}
+```
+
+**Respuesta (200 OK):**
+```json
+{
+  "mensaje": "Datos del garante agregados exitosamente",
+  "fase_nueva": "FASE_5_GARANTE",
+  "estado": { ... }
+}
+```
+
+---
+
+### Enviar a Revisión (FASE 5 → FASE 6)
+**PATCH** `http://18.116.21.77:8000/api/Creditos/creditos/{id}/enviar-revision/`
+
+**Descripción:** Envía el crédito completo a revisión. Avanza de FASE_5 a FASE_6.
+
+**Body:** (vacío o `{}`)
+
+**Respuesta (200 OK):**
+```json
+{
+  "mensaje": "Solicitud enviada a revisión exitosamente",
+  "fase_nueva": "FASE_6_REVISION",
+  "estado": { ... }
+}
+```
+
+---
+
+### Revisar/Aprobar/Rechazar Crédito (FASE 6)
+**PATCH** `http://18.116.21.77:8000/api/Creditos/creditos/{id}/revisar/`
+
+**Descripción:** El analista aprueba o rechaza el crédito en FASE_6.
+
+**Body (Aprobar):**
+```json
+{
+  "aprobado": true
+}
+```
+
+**Body (Rechazar):**
+```json
+{
+  "aprobado": false,
+  "razon": "Ingresos insuficientes"
+}
+```
+
+**Respuesta (200 OK - Aprobado):**
+```json
+{
+  "mensaje": "Crédito aprobado exitosamente",
+  "estado_actual": "Aprobado",
+  "fase_nueva": "FASE_7_DESEMBOLSO",
+  "estado": { ... }
+}
+```
+
+**Respuesta (200 OK - Rechazado):**
+```json
+{
+  "mensaje": "Crédito rechazado",
+  "estado_actual": "Rechazado",
+  "fase_nueva": "FASE_6_REVISION",
+  "estado": { ... }
+}
+```
+
+---
+
+### Desembolsar Crédito (FASE 7 → FASE 8)
+**PATCH** `http://18.116.21.77:8000/api/Creditos/creditos/{id}/desembolsar/`
+
+**Descripción:** Realiza el desembolso del crédito aprobado. Avanza de FASE_7 a FASE_8 (finalizado).
+
+**Body:** (vacío o `{}`)
+
+**Respuesta (200 OK):**
+```json
+{
+  "mensaje": "Crédito desembolsado exitosamente",
+  "estado_actual": "DESENBOLSADO",
+  "fecha_desembolso": "2025-11-19",
+  "estado": { ... }
+}
+```
+
+---
+
+## 3. Historial de Créditos
+
+### Historial Completo de la Empresa
+**GET** `http://18.116.21.77:8000/api/Creditos/historial/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Lista el historial de todos los créditos de la empresa.
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "ci_cliente": "12345678",
+    "nombre_cliente": "María",
+    "apellido_cliente": "González",
+    "cargo": "Gerente de Ventas",
+    "empresa_trabajo": "Empresa XYZ S.A.",
+    "salario": 8500.00,
+    "monto_prestamo": 25000.00,
+    "estado_prestamo": "DESENBOLSADO",
+    "moneda": "BOB"
+  }
+]
+```
+
+---
+
+### Historial por CI
+**GET** `http://18.116.21.77:8000/api/Creditos/historial/{ci}/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Lista todos los créditos de un cliente específico por su CI.
+
+**Ejemplo:** `http://18.116.21.77:8000/api/Creditos/historial/12345678/`
+
+**Respuesta (200 OK):** Array con el mismo formato que el historial completo, filtrado por CI.
+
+---
+
+### Estado del Último Crédito por CI
+**GET** `http://18.116.21.77:8000/api/Creditos/estado-credito/{ci}/`
+
+**Autenticación:** Requerida
+
+**Descripción:** Obtiene el estado del crédito más reciente de un cliente por su CI.
+
+**Ejemplo:** `http://18.116.21.77:8000/api/Creditos/estado-credito/12345678/`
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "ci_cliente": "12345678",
+    "nombre_cliente": "María",
+    "apellido_cliente": "González",
+    "estado_credito": "DESENBOLSADO",
+    "monto": 25000.00,
+    "moneda": "BOB",
+    "fecha_aprobacion": "2025-11-19"
+  }
+]
+```
+
+---
+
+## 🔄 Flujo Completo del Workflow de Créditos
+
+1. **FASE_1_SOLICITUD** → Crear crédito: `POST /api/Creditos/creditos/`
+2. **FASE_2_DOCUMENTACION** → Agregar documentación: `PATCH /api/Creditos/creditos/{id}/agregar-documentacion/`
+3. **FASE_3_LABORAL** → Agregar información laboral: `PATCH /api/Creditos/creditos/{id}/agregar-laboral/`
+4. **FASE_4_DOMICILIO** → Agregar domicilio: `PATCH /api/Creditos/creditos/{id}/agregar-domicilio/`
+5. **FASE_5_GARANTE** → Agregar garante: `PATCH /api/Creditos/creditos/{id}/agregar-garante/`
+6. **FASE_6_REVISION** → Enviar a revisión: `PATCH /api/Creditos/creditos/{id}/enviar-revision/`
+7. **FASE_6_REVISION** → Revisar (aprobar/rechazar): `PATCH /api/Creditos/creditos/{id}/revisar/`
+8. **FASE_7_DESEMBOLSO** → Desembolsar: `PATCH /api/Creditos/creditos/{id}/desembolsar/`
+9. **FASE_8_FINALIZADO** → Crédito completado
+
+---
+
+## 📌 Notas Importantes
+
+### Multitenancy
+- Todos los endpoints filtran datos por empresa del usuario autenticado
+- No se pueden acceder datos de otras empresas
+- La empresa se asigna automáticamente en operaciones POST
+
+### Estados de Crédito
+- **En proceso**: Estado inicial
+- **Aprobado**: Aprobado por analista
+- **Rechazado**: Rechazado por analista
+- **DESENBOLSADO**: Dinero entregado al cliente
+
+### Subida de Archivos
+- Logo empresa y avatares se suben a Amazon S3
+- Usar `multipart/form-data` para endpoints con archivos
+- Los endpoints retornan URLs de S3 en las respuestas
+
+### Códigos de Respuesta HTTP
+- **200 OK**: Operación exitosa
+- **201 Created**: Recurso creado
+- **400 Bad Request**: Error de validación
+- **401 Unauthorized**: Token inválido o faltante
+- **403 Forbidden**: Sin permisos
+- **404 Not Found**: Recurso no encontrado
+- **500 Internal Server Error**: Error del servidor
+
+---
+
+## 🧪 Test Endpoint
+
+**GET** `http://18.116.21.77:8000/api/Creditos/test/tipos/`
+
+**Descripción:** Endpoint de prueba para verificar tipos de crédito.
+
+---
+
+**Documentación generada el:** 19 de noviembre de 2025  
+**Versión del API:** 1.0  
+**Backend Framework:** Django REST Framework

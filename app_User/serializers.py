@@ -76,6 +76,7 @@ class GroupSerializers(ModelSerializer):
         permissions_data = validated_data.pop('permissions', [])
         descripcion = self.initial_data.get('descripcion', '')
         empresa_id = self.initial_data.get('empresa_id', None)
+        
         # Soportar tanto 'nombre' como 'name' en el input
         name = self.initial_data.get('nombre', '') or self.initial_data.get('name', '')
         name = name.strip() if name else ''
@@ -84,12 +85,16 @@ class GroupSerializers(ModelSerializer):
         if not name:
             name = descripcion[:150].strip() if descripcion else f'Grupo {Group.objects.count() + 1}'
         
+        print(f"📝 Creando grupo con nombre: '{name}', descripcion: '{descripcion}', empresa_id: {empresa_id}")
+        
         # Crear el grupo con el nombre
         group = Group.objects.create(name=name)
+        print(f"✅ Grupo creado con ID: {group.id}")
         
         # Asignar permisos
         if permissions_data:
             group.permissions.set(permissions_data)
+            print(f"✅ Permisos asignados: {len(permissions_data)}")
         
         # Crear descripción del grupo con empresa
         from app_User.models import GroupDescripcion
@@ -97,10 +102,26 @@ class GroupSerializers(ModelSerializer):
         try:
             empresa = None
             if empresa_id:
-                empresa = Empresa.objects.get(id=empresa_id)
-            GroupDescripcion.objects.create(group=group, descripcion=descripcion, empresa=empresa)
+                try:
+                    empresa = Empresa.objects.get(id=empresa_id)
+                    print(f"✅ Empresa encontrada: {empresa.razon_social}")
+                except Empresa.DoesNotExist:
+                    print(f"⚠️ Empresa con ID {empresa_id} no encontrada")
+            
+            desc_obj = GroupDescripcion.objects.create(
+                group=group, 
+                descripcion=descripcion, 
+                empresa=empresa
+            )
+            print(f"✅ GroupDescripcion creado con ID: {desc_obj.id}")
+            
         except Exception as e:
-            print(f"Error creando GroupDescripcion: {e}")
+            import traceback
+            print(f"❌ Error creando GroupDescripcion: {e}")
+            traceback.print_exc()
+            # Si falla la creación de la descripción, eliminar el grupo para mantener consistencia
+            group.delete()
+            raise serializers.ValidationError(f"Error al crear descripción del grupo: {str(e)}")
         
         return group
     
@@ -169,3 +190,86 @@ class PerfilUserSerializer(ModelSerializer):
     class Meta:
         model = Perfiluser
         fields = '__all__'
+
+
+class UserGroupSerializer(serializers.Serializer):
+    """
+    Serializer para la tabla intermedia auth_user_groups (relación muchos a muchos)
+    Permite asignar/desasignar usuarios a grupos
+    """
+    id = serializers.IntegerField(read_only=True)
+    user_id = serializers.IntegerField(required=True)
+    group_id = serializers.IntegerField(required=True)
+    
+    # Campos adicionales para mostrar información completa (read only)
+    username = serializers.CharField(source='user.username', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    group_name = serializers.CharField(source='group.name', read_only=True)
+    
+    def validate_user_id(self, value):
+        """Validar que el usuario existe"""
+        if not User.objects.filter(id=value).exists():
+            raise serializers.ValidationError(f"Usuario con ID {value} no existe")
+        return value
+    
+    def validate_group_id(self, value):
+        """Validar que el grupo existe"""
+        if not Group.objects.filter(id=value).exists():
+            raise serializers.ValidationError(f"Grupo con ID {value} no existe")
+        return value
+    
+    def validate(self, data):
+        """Validar que la combinación usuario-grupo no exista ya"""
+        if hasattr(self, 'instance') and self.instance:
+            # Es una actualización, permitir
+            return data
+            
+        user_id = data.get('user_id')
+        group_id = data.get('group_id')
+        
+        try:
+            user = User.objects.get(id=user_id)
+            if user.groups.filter(id=group_id).exists():
+                raise serializers.ValidationError(
+                    f"El usuario {user.username} ya pertenece al grupo con ID {group_id}"
+                )
+        except User.DoesNotExist:
+            pass
+            
+        return data
+    
+    def create(self, validated_data):
+        """Asignar usuario a grupo"""
+        user_id = validated_data['user_id']
+        group_id = validated_data['group_id']
+        
+        user = User.objects.get(id=user_id)
+        group = Group.objects.get(id=group_id)
+        
+        # Agregar el usuario al grupo
+        user.groups.add(group)
+        
+        # Retornar un objeto simulado con la información
+        return {
+            'id': f"{user_id}_{group_id}",
+            'user': user,
+            'group': group,
+            'user_id': user_id,
+            'group_id': group_id,
+        }
+    
+    def to_representation(self, instance):
+        """Personalizar la representación de salida"""
+        if isinstance(instance, dict):
+            # Cuando viene del create
+            return {
+                'id': instance['id'],
+                'user_id': instance['user_id'],
+                'group_id': instance['group_id'],
+                'username': instance['user'].username,
+                'user_email': instance['user'].email,
+                'group_name': instance['group'].name,
+            }
+        else:
+            # Cuando viene de una query normal
+            return super().to_representation(instance)
