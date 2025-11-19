@@ -28,10 +28,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-q-b=z&b-czl6jc02(*kqazjhrtyd!ukrl*+++&xp)j=yl@+_2%')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # Permitir todas las IPs para acceso desde EC2
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 
 # Application definition
@@ -161,9 +161,45 @@ REST_FRAMEWORK = {
     ],
 }
 
-# CORS Configuration - Permitir todos los orígenes para desarrollo
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS Configuration - Configuración específica para frontend
+# Para desarrollo: CORS_ALLOW_ALL_ORIGINS = True
+# Para producción: especificar dominios permitidos
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
+
+# Orígenes permitidos específicos (para producción)
+CORS_ALLOWED_ORIGINS = [
+    'http://18.116.21.77',
+    'http://18.116.21.77:3000',
+    'http://18.116.21.77:8080',
+    'http://localhost:3000',
+    'http://localhost:8080',
+]
+
+# Permitir credenciales (cookies, headers de autenticación)
 CORS_ALLOW_CREDENTIALS = True
+
+# Métodos HTTP permitidos
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Headers permitidos
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # ==============================================
 # CONFIGURACIÓN DE AWS S3
