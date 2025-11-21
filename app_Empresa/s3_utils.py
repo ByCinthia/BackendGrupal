@@ -86,6 +86,27 @@ def upload_user_avatar(file):
     return upload_file_to_s3(file, folder='usuarios/avatars')
 
 
+def upload_client_document(file):
+    """
+    Subir documento de cliente a S3 en la carpeta 'clientes/documentos'
+    """
+    return upload_file_to_s3(file, folder='clientes/documentos')
+
+
+def upload_client_work_extract(file):
+    """
+    Subir extracto bancario laboral a S3 en la carpeta 'clientes/extractos'
+    """
+    return upload_file_to_s3(file, folder='clientes/extractos')
+
+
+def upload_client_address_sketch(file):
+    """
+    Subir croquis de domicilio a S3 en la carpeta 'clientes/croquis'
+    """
+    return upload_file_to_s3(file, folder='clientes/croquis')
+
+
 def delete_file_from_s3(file_url):
     """
     Eliminar un archivo de S3 usando su URL

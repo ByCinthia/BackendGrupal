@@ -141,6 +141,9 @@ class CreateUserView(APIView):
         # Forzamos que la empresa sea la del admin, o puede recibirse para validación
         empresa_id = request.data.get('empresa_id', admin_perfil.empresa.id)
         imagen_url = request.data.get('imagen_url', '')
+        
+        # Obtener archivo de imagen si viene
+        imagen_perfil_file = request.FILES.get('imagen_perfil', None)
 
         # Validaciones básicas
         if not all([username, password, email]):
@@ -158,6 +161,17 @@ class CreateUserView(APIView):
             return Response({'error': 'El email ya está registrado'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            # Si viene una imagen, subirla a S3
+            if imagen_perfil_file:
+                from app_Empresa.s3_utils import upload_user_avatar
+                print(f"📤 Subiendo imagen de perfil a S3: {imagen_perfil_file.name}")
+                imagen_url = upload_user_avatar(imagen_perfil_file)
+                if imagen_url:
+                    print(f"✅ Imagen subida exitosamente: {imagen_url}")
+                else:
+                    print("⚠️ No se pudo subir la imagen a S3, se continuará sin imagen")
+                    imagen_url = ''
+            
             # Crear usuario normal (no admin)
             user = User.objects.create_user(
                 username=username,
@@ -185,6 +199,7 @@ class CreateUserView(APIView):
                     'is_superuser': user.is_superuser,
                     'empresa_id': admin_perfil.empresa.id,
                     'empresa_nombre': admin_perfil.empresa.razon_social,
+                    'imagen_url': imagen_url,
                 },
                 'token': token.key
             }
