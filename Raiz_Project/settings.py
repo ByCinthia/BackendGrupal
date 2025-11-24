@@ -30,8 +30,13 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-q-b=z&b-czl6jc02(*kqazjhrt
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-# Permitir todas las IPs para acceso desde EC2
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+# Permitir hosts: preferir variable de entorno; si no, usar valores seguros
+env_allowed = os.getenv('ALLOWED_HOSTS')
+if env_allowed:
+    ALLOWED_HOSTS = env_allowed.split(',')
+else:
+    # Ajusta estos valores si cambias la IP del servidor
+    ALLOWED_HOSTS = ['18.116.21.77', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -200,7 +205,11 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-tenant-id',
 ]
+
+# CSRF: confiar en el frontend que sirve en la IP indicada
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://18.116.21.77').split(',')
 
 # ==============================================
 # CONFIGURACIÓN DE AWS S3
